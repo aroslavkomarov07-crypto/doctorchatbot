@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from core.entities.message import Message
@@ -32,11 +33,20 @@ class MessageService:
         )
 
         async with self.unit_of_work as uow:
-            if uow.messages is None:
+            if uow.messages is None or uow.subscriptions is None:
                 raise RuntimeError(
                     "MessageRepository не инициализирован."
                 )
 
+            subscription = await uow.subscriptions.get_active_for_user(
+                user_id=user_id,
+                expert_id=expert_id,
+                now=datetime.now(UTC),
+            )
+            if subscription is None:
+                raise PermissionError(
+                    "Для переписки с экспертом нужна активная подписка."
+                )
             return await uow.messages.create(message)
 
     async def get_conversation(

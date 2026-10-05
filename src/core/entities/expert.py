@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 
@@ -26,7 +26,7 @@ class Expert:
 
     # Дата регистрации эксперта
     created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(UTC)
     )
 
     def __post_init__(self) -> None:
@@ -35,7 +35,11 @@ class Expert:
                 "Telegram ID эксперта должен быть положительным числом."
             )
 
-        if not self.full_name.strip():
+        self.full_name = self.full_name.strip()
+        if not self.full_name:
             raise ValueError(
                 "ФИО эксперта не может быть пустым."
             )
+
+        if self.description is not None:
+            self.description = self.description.strip() or None

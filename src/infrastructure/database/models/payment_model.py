@@ -2,12 +2,19 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infrastructure.database.base import Base
-
 from core.enums.payment_status import PaymentStatus
+from infrastructure.database.base import Base
 
 
 class PaymentModel(Base):
@@ -16,6 +23,18 @@ class PaymentModel(Base):
     """
 
     __tablename__ = "payments"
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="ck_payments_amount_positive"),
+        CheckConstraint(
+            "provider_payment_id IS NULL OR payment_provider IS NOT NULL",
+            name="ck_payments_provider_for_operation",
+        ),
+        UniqueConstraint(
+            "payment_provider",
+            "provider_payment_id",
+            name="uq_payments_provider_operation",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(
         primary_key=True
@@ -62,6 +81,11 @@ class PaymentModel(Base):
 
     payment_provider: Mapped[str | None] = mapped_column(
         String(100),
+        nullable=True,
+    )
+
+    provider_payment_id: Mapped[str | None] = mapped_column(
+        String(255),
         nullable=True,
     )
 

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -21,27 +22,57 @@ class PaymentService:
         currency: str = "RUB",
         subscription_id: UUID | None = None,
         payment_provider: str | None = None,
+        provider_payment_id: str | None = None,
     ) -> Payment:
         if amount <= 0:
             raise ValueError(
                 "Сумма платежа должна быть больше нуля."
             )
 
-        payment = Payment(
-            user_id=user_id,
-            subscription_id=subscription_id,
-            amount=amount,
-            currency=currency,
-            status=PaymentStatus.PENDING,
-            payment_provider=payment_provider,
-        )
-
         async with self.unit_of_work as uow:
-            if uow.payments is None:
+            if uow.payments is None or uow.subscriptions is None:
                 raise RuntimeError(
                     "PaymentRepository не инициализирован."
                 )
 
+            if provider_payment_id is not None:
+                if payment_provider is None:
+                    raise ValueError(
+                        "Для ID операции необходимо указать платёжного провайдера."
+                    )
+                existing = await uow.payments.get_by_provider_operation(
+                    payment_provider,
+                    provider_payment_id,
+                )
+                if existing is not None:
+                    if (
+                        existing.user_id != user_id
+                        or existing.amount != amount
+                        or existing.currency != currency.strip().upper()
+                    ):
+                        raise ValueError(
+                            "ID операции уже связан с другим платежом."
+                        )
+                    return existing
+
+            if subscription_id is not None:
+                subscription = await uow.subscriptions.get_by_id(subscription_id)
+                if subscription is None:
+                    raise ValueError("Подписка для платежа не найдена.")
+                if subscription.user_id != user_id:
+                    raise PermissionError("Нельзя оплатить чужую подписку.")
+                if subscription.status != SubscriptionStatus.PENDING:
+                    raise ValueError("Оплатить можно только ожидающую оплаты подписку.")
+
+            payment = Payment(
+                user_id=user_id,
+                subscription_id=subscription_id,
+                amount=amount,
+                currency=currency,
+                status=PaymentStatus.PENDING,
+                payment_provider=payment_provider,
+                provider_payment_id=provider_payment_id,
+            )
             return await uow.payments.create(payment)
 
     async def get_payment(
@@ -100,9 +131,7 @@ class PaymentService:
                     "не инициализированы."
                 )
 
-            payment = await uow.payments.get_by_id(
-                payment_id
-            )
+            payment = await uow.payments.get_by_id(payment_id, for_update=True)
 
             if payment is None:
                 return None
@@ -138,9 +167,9 @@ class PaymentService:
                         subscription.status
                         == SubscriptionStatus.PENDING
                     ):
-                        await uow.subscriptions.update_status(
+                        await uow.subscriptions.activate(
                             subscription.id,
-                            SubscriptionStatus.ACTIVE,
+                            datetime.now(UTC),
                         )
 
             return payment
@@ -155,9 +184,7 @@ class PaymentService:
                     "PaymentRepository не инициализирован."
                 )
 
-            payment = await uow.payments.get_by_id(
-                payment_id
-            )
+            payment = await uow.payments.get_by_id(payment_id, for_update=True)
 
             if payment is None:
                 return None
@@ -185,14 +212,12 @@ class PaymentService:
         payment_id: UUID,
     ) -> Payment | None:
         async with self.unit_of_work as uow:
-            if uow.payments is None:
+            if uow.payments is None or uow.subscriptions is None:
                 raise RuntimeError(
                     "PaymentRepository не инициализирован."
                 )
 
-            payment = await uow.payments.get_by_id(
-                payment_id
-            )
+            payment = await uow.payments.get_by_id(payment_id, for_update=True)
 
             if payment is None:
                 return None
@@ -205,7 +230,17 @@ class PaymentService:
                     "Вернуть можно только успешно оплаченный платёж."
                 )
 
-            return await uow.payments.update_status(
+            refunded = await uow.payments.update_status(
                 payment_id,
                 PaymentStatus.REFUNDED,
             )
+            if payment.subscription_id is not None:
+                subscription = await uow.subscriptions.get_by_id(
+                    payment.subscription_id
+                )
+                if subscription is not None and subscription.status in {
+                    SubscriptionStatus.PENDING,
+                    SubscriptionStatus.ACTIVE,
+                }:
+                    await uow.subscriptions.cancel(subscription.id)
+            return refunded

@@ -24,6 +24,7 @@ class PaymentRepository:
             currency=payment.currency,
             status=payment.status,
             payment_provider=payment.payment_provider,
+            provider_payment_id=payment.provider_payment_id,
             created_at=payment.created_at,
         )
 
@@ -36,12 +37,13 @@ class PaymentRepository:
     async def get_by_id(
         self,
         payment_id: UUID,
+        *,
+        for_update: bool = False,
     ) -> Payment | None:
-        result = await self.session.execute(
-            select(PaymentModel).where(
-                PaymentModel.id == payment_id
-            )
-        )
+        statement = select(PaymentModel).where(PaymentModel.id == payment_id)
+        if for_update:
+            statement = statement.with_for_update()
+        result = await self.session.execute(statement)
 
         payment_model = result.scalar_one_or_none()
 
@@ -49,6 +51,20 @@ class PaymentRepository:
             return None
 
         return self._to_entity(payment_model)
+
+    async def get_by_provider_operation(
+        self,
+        payment_provider: str,
+        provider_payment_id: str,
+    ) -> Payment | None:
+        result = await self.session.execute(
+            select(PaymentModel).where(
+                PaymentModel.payment_provider == payment_provider,
+                PaymentModel.provider_payment_id == provider_payment_id,
+            )
+        )
+        payment_model = result.scalar_one_or_none()
+        return None if payment_model is None else self._to_entity(payment_model)
 
     async def get_for_user(
         self,
@@ -126,5 +142,6 @@ class PaymentRepository:
             currency=payment_model.currency,
             status=payment_model.status,
             payment_provider=payment_model.payment_provider,
+            provider_payment_id=payment_model.provider_payment_id,
             created_at=payment_model.created_at,
         )

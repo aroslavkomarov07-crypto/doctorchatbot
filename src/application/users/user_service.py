@@ -1,5 +1,5 @@
-from infrastructure.database.unit_of_work import UnitOfWork
 from core.entities.user import User
+from infrastructure.database.unit_of_work import UnitOfWork
 
 
 class UserService:

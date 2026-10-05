@@ -53,18 +53,21 @@ class SubscriptionRepository:
         self,
         user_id: UUID,
         now: datetime,
+        expert_id: UUID | None = None,
     ) -> Subscription | None:
+        conditions = [
+            SubscriptionModel.user_id == user_id,
+            SubscriptionModel.status == SubscriptionStatus.ACTIVE,
+            SubscriptionModel.start_date <= now,
+            SubscriptionModel.end_date > now,
+        ]
+        if expert_id is not None:
+            conditions.append(SubscriptionModel.expert_id == expert_id)
+
         result = await self.session.execute(
             select(SubscriptionModel)
-            .where(
-                SubscriptionModel.user_id == user_id,
-                SubscriptionModel.status == SubscriptionStatus.ACTIVE,
-                SubscriptionModel.start_date <= now,
-                SubscriptionModel.end_date > now,
-            )
-            .order_by(
-                SubscriptionModel.end_date.desc()
-            )
+            .where(*conditions)
+            .order_by(SubscriptionModel.end_date.desc())
         )
 
         subscription_model = result.scalars().first()
@@ -73,6 +76,44 @@ class SubscriptionRepository:
             return None
 
         return self._to_entity(subscription_model)
+
+    async def activate(
+        self,
+        subscription_id: UUID,
+        now: datetime,
+    ) -> Subscription | None:
+        result = await self.session.execute(
+            select(SubscriptionModel)
+            .where(SubscriptionModel.id == subscription_id)
+            .with_for_update()
+        )
+        model = result.scalar_one_or_none()
+        if model is None:
+            return None
+
+        subscription = self._to_entity(model)
+        subscription.activate(now)
+        model.status = subscription.status
+        model.start_date = subscription.start_date
+        model.end_date = subscription.end_date
+        await self.session.flush()
+        return subscription
+
+    async def cancel(self, subscription_id: UUID) -> Subscription | None:
+        result = await self.session.execute(
+            select(SubscriptionModel)
+            .where(SubscriptionModel.id == subscription_id)
+            .with_for_update()
+        )
+        model = result.scalar_one_or_none()
+        if model is None:
+            return None
+
+        subscription = self._to_entity(model)
+        subscription.cancel()
+        model.status = subscription.status
+        await self.session.flush()
+        return subscription
 
     async def get_for_user(
         self,

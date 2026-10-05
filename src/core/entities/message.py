@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from core.enums.message_sender_type import MessageSenderType
@@ -27,11 +27,12 @@ class Message:
 
     # время отправки
     created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(UTC)
     )
 
     def __post_init__(self) -> None:
-        if not self.text.strip():
+        self.text = self.text.strip()
+        if not self.text:
             raise ValueError(
                 "Текст сообщения не может быть пустым."
             )

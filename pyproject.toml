@@ -1,0 +1,39 @@
+[project]
+name = "doctorchatbot"
+version = "0.1.0"
+description = "Telegram bot for paid conversations with experts"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "aiogram>=3.22,<4",
+    "alembic>=1.16,<2",
+    "asyncpg>=0.30,<1",
+    "pydantic-settings>=2.11,<3",
+    "sqlalchemy[asyncio]>=2.0,<3",
+]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18,<2",
+    "ruff>=0.14,<1",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["src"]
+plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
+strict = true

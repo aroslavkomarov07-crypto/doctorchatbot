@@ -4,9 +4,8 @@ from uuid import UUID
 from sqlalchemy import DateTime, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infrastructure.database.base import Base
-
 from core.enums.subscription_status import SubscriptionStatus
+from infrastructure.database.base import Base
 
 
 class SubscriptionModel(Base):

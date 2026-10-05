@@ -4,9 +4,8 @@ from uuid import UUID
 from sqlalchemy import DateTime, Enum, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from infrastructure.database.base import Base
-
 from core.enums.message_sender_type import MessageSenderType
+from infrastructure.database.base import Base
 
 
 class MessageModel(Base):

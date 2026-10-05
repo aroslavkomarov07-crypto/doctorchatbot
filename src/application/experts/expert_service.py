@@ -1,5 +1,5 @@
-from infrastructure.database.unit_of_work import UnitOfWork
 from core.entities.expert import Expert
+from infrastructure.database.unit_of_work import UnitOfWork
 
 
 class ExpertService:

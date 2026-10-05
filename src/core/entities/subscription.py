@@ -62,3 +62,20 @@ class Subscription:
             self.status == SubscriptionStatus.ACTIVE
             and self.start_date <= now < self.end_date
         )
+
+    def activate(self, now: datetime) -> None:
+        """Activate the subscription without losing paid time."""
+        if self.status == SubscriptionStatus.ACTIVE:
+            return
+        if self.status != SubscriptionStatus.PENDING:
+            raise ValueError("Активировать можно только ожидающую оплаты подписку.")
+
+        duration = self.end_date - self.start_date
+        self.start_date = now
+        self.end_date = now + duration
+        self.status = SubscriptionStatus.ACTIVE
+
+    def cancel(self) -> None:
+        if self.status == SubscriptionStatus.EXPIRED:
+            raise ValueError("Истёкшую подписку нельзя отменить.")
+        self.status = SubscriptionStatus.CANCELLED

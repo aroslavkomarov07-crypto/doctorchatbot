@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -32,9 +32,12 @@ class Payment:
     # Платёжная система
     payment_provider: str | None = None
 
+    # Уникальный ID операции у провайдера
+    provider_payment_id: str | None = None
+
     # Дата создания платежа
     created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(UTC)
     )
 
     def __post_init__(self) -> None:
@@ -47,3 +50,15 @@ class Payment:
             raise ValueError(
                 "Валюта платежа не может быть пустой."
             )
+
+        self.currency = self.currency.strip().upper()
+
+        if len(self.currency) != 3:
+            raise ValueError(
+                "Валюта должна быть трёхбуквенным ISO-кодом."
+            )
+
+        if self.provider_payment_id is not None:
+            self.provider_payment_id = self.provider_payment_id.strip()
+            if not self.provider_payment_id:
+                raise ValueError("ID платежа провайдера не может быть пустым.")

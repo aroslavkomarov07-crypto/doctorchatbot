@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from core.entities.subscription import Subscription
-from core.enums.subscription_status import SubscriptionStatus
 from infrastructure.database.unit_of_work import UnitOfWork
 
 
@@ -24,21 +23,33 @@ class SubscriptionService:
                 "Продолжительность подписки должна быть больше нуля."
             )
 
-        start_date = datetime.now(timezone.utc)
+        start_date = datetime.now(UTC)
         end_date = start_date + timedelta(days=duration_days)
 
-        subscription = Subscription.create(
-            user_id=user_id,
-            expert_id=expert_id,
-            start_date=start_date,
-            end_date=end_date,
-        )
-
         async with self.unit_of_work as uow:
-            if uow.subscriptions is None:
+            if (
+                uow.users is None
+                or uow.experts is None
+                or uow.subscriptions is None
+            ):
                 raise RuntimeError(
-                    "SubscriptionRepository не инициализирован."
+                    "Репозитории подписки не инициализированы."
                 )
+
+            user = await uow.users.get_by_id(user_id)
+            if user is None:
+                raise ValueError("Пользователь не найден.")
+
+            expert = await uow.experts.get_by_id(expert_id)
+            if expert is None or not expert.is_active:
+                raise ValueError("Эксперт не найден или недоступен.")
+
+            subscription = Subscription.create(
+                user_id=user_id,
+                expert_id=expert_id,
+                start_date=start_date,
+                end_date=end_date,
+            )
 
             return await uow.subscriptions.create(
                 subscription
@@ -48,7 +59,7 @@ class SubscriptionService:
         self,
         user_id: UUID,
     ) -> Subscription | None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         async with self.unit_of_work as uow:
             if uow.subscriptions is None:
@@ -58,6 +69,21 @@ class SubscriptionService:
 
             return await uow.subscriptions.get_active_for_user(
                 user_id=user_id,
+                now=now,
+            )
+
+    async def get_active_subscription_for_expert(
+        self,
+        user_id: UUID,
+        expert_id: UUID,
+    ) -> Subscription | None:
+        now = datetime.now(UTC)
+        async with self.unit_of_work as uow:
+            if uow.subscriptions is None:
+                raise RuntimeError("SubscriptionRepository не инициализирован.")
+            return await uow.subscriptions.get_active_for_user(
+                user_id=user_id,
+                expert_id=expert_id,
                 now=now,
             )
 
@@ -85,9 +111,9 @@ class SubscriptionService:
                     "SubscriptionRepository не инициализирован."
                 )
 
-            return await uow.subscriptions.update_status(
+            return await uow.subscriptions.activate(
                 subscription_id,
-                SubscriptionStatus.ACTIVE,
+                datetime.now(UTC),
             )
 
     async def cancel_subscription(
@@ -100,7 +126,4 @@ class SubscriptionService:
                     "SubscriptionRepository не инициализирован."
                 )
 
-            return await uow.subscriptions.update_status(
-                subscription_id,
-                SubscriptionStatus.CANCELLED,
-            )
+            return await uow.subscriptions.cancel(subscription_id)

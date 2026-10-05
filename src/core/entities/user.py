@@ -1,5 +1,6 @@
+import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 
@@ -23,7 +24,7 @@ class User:
 
     # Дата регистрации
     created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(UTC)
     )
 
     def __post_init__(self) -> None:
@@ -32,12 +33,14 @@ class User:
                 "Telegram ID должен быть положительным числом."
             )
 
-        if not self.full_name.strip():
+        self.full_name = self.full_name.strip()
+        if not self.full_name:
             raise ValueError(
                 "ФИО пользователя не может быть пустым."
             )
 
-        if not self.phone_number.strip():
+        self.phone_number = self.phone_number.strip().replace(" ", "")
+        if not re.fullmatch(r"\+?[1-9]\d{7,14}", self.phone_number):
             raise ValueError(
-                "Номер телефона не может быть пустым."
+                "Номер телефона должен быть указан в международном формате."
             )

@@ -71,3 +71,9 @@ class UnitOfWork:
                 await self.session.commit()
         finally:
             await self.session.close()
+            self.session = None
+            self.users = None
+            self.experts = None
+            self.subscriptions = None
+            self.messages = None
+            self.payments = None
