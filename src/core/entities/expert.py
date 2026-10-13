@@ -20,6 +20,10 @@ class Expert:
 
     # Краткое описание эксперта
     description: str | None = None
+    specialization: str | None = None
+    education: str | None = None
+    experience: str | None = None
+    photo_file_id: str | None = None
 
     # Может ли эксперт принимать новые обращения
     is_active: bool = True

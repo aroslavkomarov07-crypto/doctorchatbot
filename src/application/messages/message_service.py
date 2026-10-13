@@ -19,6 +19,7 @@ class MessageService:
         expert_id: UUID,
         text: str,
         sender_type: MessageSenderType,
+        reply_to_id: UUID | None = None,
     ) -> Message:
         if not text.strip():
             raise ValueError(
@@ -30,6 +31,7 @@ class MessageService:
             expert_id=expert_id,
             text=text,
             sender_type=sender_type,
+            reply_to_id=reply_to_id,
         )
 
         async with self.unit_of_work as uow:
@@ -47,6 +49,17 @@ class MessageService:
                 raise PermissionError(
                     "Для переписки с экспертом нужна активная подписка."
                 )
+            if sender_type == MessageSenderType.USER:
+                if not await uow.subscriptions.reserve_message_slot(
+                    user_id, expert_id, datetime.now(UTC)
+                ):
+                    raise PermissionError("Лимит сообщений по подписке исчерпан.")
+            if reply_to_id is not None:
+                original = await uow.messages.get_by_id(reply_to_id)
+                if original is None or original.user_id != user_id or original.expert_id != expert_id:
+                    raise ValueError("Исходное сообщение не найдено.")
+                if sender_type != MessageSenderType.EXPERT or original.sender_type != MessageSenderType.USER:
+                    raise ValueError("Ответить можно только на вопрос клиента.")
             return await uow.messages.create(message)
 
     async def get_conversation(
@@ -64,6 +77,11 @@ class MessageService:
                 user_id=user_id,
                 expert_id=expert_id,
             )
+
+    async def get_message(self, message_id: UUID) -> Message | None:
+        async with self.unit_of_work as uow:
+            assert uow.messages is not None
+            return await uow.messages.get_by_id(message_id)
 
     async def get_latest_messages(
         self,

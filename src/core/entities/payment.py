@@ -34,6 +34,17 @@ class Payment:
 
     # Уникальный ID операции у провайдера
     provider_payment_id: str | None = None
+    expert_id: UUID | None = None
+    tariff_id: UUID | None = None
+    tariff_name: str | None = None
+    duration_days: int | None = None
+    message_limit: int | None = None
+    payment_url: str | None = None
+    payment_fee_percent: Decimal | None = None
+    service_fee_percent: Decimal | None = None
+    payment_fee: Decimal | None = None
+    service_fee: Decimal | None = None
+    expert_income: Decimal | None = None
 
     # Дата создания платежа
     created_at: datetime = field(

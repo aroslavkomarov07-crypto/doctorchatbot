@@ -101,6 +101,11 @@ class SubscriptionService:
                 user_id
             )
 
+    async def get_expert_subscriptions(self, expert_id: UUID) -> list[Subscription]:
+        async with self.unit_of_work as uow:
+            assert uow.subscriptions is not None
+            return await uow.subscriptions.get_for_expert(expert_id)
+
     async def activate_subscription(
         self,
         subscription_id: UUID,

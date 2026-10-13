@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
+from application.marketplace_service import money
 from core.entities.payment import Payment
 from core.enums.payment_status import PaymentStatus
 from core.enums.subscription_status import SubscriptionStatus
@@ -125,6 +126,7 @@ class PaymentService:
             if (
                 uow.payments is None
                 or uow.subscriptions is None
+                or uow.marketplace is None
             ):
                 raise RuntimeError(
                     "Репозитории Payment/Subscription "
@@ -145,6 +147,16 @@ class PaymentService:
             }:
                 raise ValueError(
                     "Нельзя подтвердить этот платёж."
+                )
+
+            if payment.expert_id is not None:
+                settings = await uow.marketplace.fee_settings(lock=True)
+                payment_fee = money(payment.amount * settings.payment_percent / 100)
+                service_fee = money(payment.amount * settings.service_percent / 100)
+                income = payment.amount - payment_fee - service_fee
+                await uow.payments.set_financial_snapshot(
+                    payment.id, settings.payment_percent, settings.service_percent,
+                    payment_fee, service_fee, income,
                 )
 
             payment = await uow.payments.update_status(
@@ -173,6 +185,64 @@ class PaymentService:
                         )
 
             return payment
+
+    async def complete_provider_payment(
+        self, provider: str, external_id: str, amount: Decimal,
+    ) -> Payment:
+        payment, _ = await self.apply_provider_event(
+            provider, external_id, amount, PaymentStatus.SUCCEEDED,
+        )
+        return payment
+
+    async def apply_provider_event(
+        self, provider: str, external_id: str, amount: Decimal,
+        target_status: PaymentStatus,
+    ) -> tuple[Payment, bool]:
+        async with self.unit_of_work as uow:
+            assert uow.payments and uow.subscriptions and uow.marketplace
+            payment = await uow.payments.get_by_provider_operation(
+                provider, external_id, for_update=True
+            )
+            if payment is None or payment.amount != amount or payment.currency != "RUB":
+                raise ValueError("Платёж, сумма или валюта не совпадают.")
+            if payment.status == target_status:
+                return payment, False
+            if target_status == PaymentStatus.SUCCEEDED:
+                if payment.status != PaymentStatus.PENDING:
+                    raise ValueError("Платёж уже закрыт.")
+                if payment.subscription_id is None:
+                    raise ValueError("Подписка не привязана к платежу.")
+                subscription = await uow.subscriptions.get_by_id(payment.subscription_id)
+                if subscription is None or subscription.user_id != payment.user_id:
+                    raise ValueError("Подписка платежа не найдена.")
+                if subscription.status != SubscriptionStatus.PENDING:
+                    raise ValueError("Подписка не ожидает оплаты.")
+                settings = await uow.marketplace.fee_settings(lock=True)
+                payment_fee = money(payment.amount * settings.payment_percent / 100)
+                service_fee = money(payment.amount * settings.service_percent / 100)
+                income = payment.amount - payment_fee - service_fee
+                await uow.payments.set_financial_snapshot(
+                    payment.id, settings.payment_percent, settings.service_percent,
+                    payment_fee, service_fee, income,
+                )
+                await uow.subscriptions.activate(subscription.id, datetime.now(UTC))
+            elif target_status == PaymentStatus.FAILED:
+                if payment.status != PaymentStatus.PENDING:
+                    return payment, False  # Ignore stale cancellation after confirmation.
+            elif target_status == PaymentStatus.REFUNDED:
+                if payment.status not in {PaymentStatus.PENDING, PaymentStatus.SUCCEEDED}:
+                    return payment, False
+                if payment.subscription_id is not None:
+                    subscription = await uow.subscriptions.get_by_id(payment.subscription_id)
+                    if subscription is not None and subscription.status in {
+                        SubscriptionStatus.PENDING, SubscriptionStatus.ACTIVE,
+                    }:
+                        await uow.subscriptions.cancel(subscription.id)
+            else:
+                raise ValueError("Недопустимый статус провайдера.")
+            completed = await uow.payments.update_status(payment.id, target_status)
+            assert completed is not None
+            return completed, True
 
     async def mark_as_failed(
         self,

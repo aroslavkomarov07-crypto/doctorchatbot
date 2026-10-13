@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import (
 from infrastructure.repositories.expert_repository import (
     ExpertRepository,
 )
+from infrastructure.repositories.marketplace_repository import MarketplaceRepository
 from infrastructure.repositories.message_repository import (
     MessageRepository,
 )
@@ -43,6 +44,7 @@ class UnitOfWork:
         self.subscriptions: SubscriptionRepository | None = None
         self.messages: MessageRepository | None = None
         self.payments: PaymentRepository | None = None
+        self.marketplace: MarketplaceRepository | None = None
 
     async def __aenter__(self) -> Self:
         self.session = self.session_factory()
@@ -52,6 +54,7 @@ class UnitOfWork:
         self.subscriptions = SubscriptionRepository(self.session)
         self.messages = MessageRepository(self.session)
         self.payments = PaymentRepository(self.session)
+        self.marketplace = MarketplaceRepository(self.session)
 
         return self
 
@@ -77,3 +80,4 @@ class UnitOfWork:
             self.subscriptions = None
             self.messages = None
             self.payments = None
+            self.marketplace = None

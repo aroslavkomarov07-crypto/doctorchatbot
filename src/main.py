@@ -12,6 +12,8 @@ async def main() -> None:
     settings = get_settings()
     if settings.bot_token is None:
         raise RuntimeError("BOT_TOKEN не задан. Добавьте его в .env.")
+    if settings.owner_telegram_id <= 0:
+        raise RuntimeError("OWNER_TELEGRAM_ID не задан или некорректен.")
 
     bot = Bot(token=settings.bot_token.get_secret_value())
     dispatcher = create_dispatcher(AsyncSessionLocal)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.enums.subscription_status import SubscriptionStatus
@@ -14,6 +14,10 @@ class SubscriptionModel(Base):
     """
 
     __tablename__ = "subscriptions"
+    __table_args__ = (
+        CheckConstraint("message_limit IS NULL OR message_limit > 0", name="ck_sub_message_limit"),
+        CheckConstraint("messages_sent >= 0", name="ck_sub_messages_sent"),
+    )
 
     id: Mapped[UUID] = mapped_column(
         primary_key=True
@@ -56,3 +60,8 @@ class SubscriptionModel(Base):
         nullable=False,
         default=SubscriptionStatus.PENDING,
     )
+    tariff_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("tariffs.id", ondelete="SET NULL"), nullable=True
+    )
+    message_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    messages_sent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

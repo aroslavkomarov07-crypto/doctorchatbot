@@ -17,6 +17,10 @@ class ExpertRepository:
             telegram_id=expert.telegram_id,
             full_name=expert.full_name,
             description=expert.description,
+            specialization=expert.specialization,
+            education=expert.education,
+            experience=expert.experience,
+            photo_file_id=expert.photo_file_id,
             is_active=expert.is_active,
             created_at=expert.created_at,
         )
@@ -47,6 +51,10 @@ class ExpertRepository:
             telegram_id=expert_model.telegram_id,
             full_name=expert_model.full_name,
             description=expert_model.description,
+            specialization=expert_model.specialization,
+            education=expert_model.education,
+            experience=expert_model.experience,
+            photo_file_id=expert_model.photo_file_id,
             is_active=expert_model.is_active,
             created_at=expert_model.created_at,
         )
@@ -71,6 +79,10 @@ class ExpertRepository:
             telegram_id=expert_model.telegram_id,
             full_name=expert_model.full_name,
             description=expert_model.description,
+            specialization=expert_model.specialization,
+            education=expert_model.education,
+            experience=expert_model.experience,
+            photo_file_id=expert_model.photo_file_id,
             is_active=expert_model.is_active,
             created_at=expert_model.created_at,
         )
@@ -90,6 +102,10 @@ class ExpertRepository:
                 telegram_id=expert.telegram_id,
                 full_name=expert.full_name,
                 description=expert.description,
+                specialization=expert.specialization,
+                education=expert.education,
+                experience=expert.experience,
+                photo_file_id=expert.photo_file_id,
                 is_active=expert.is_active,
                 created_at=expert.created_at,
             )

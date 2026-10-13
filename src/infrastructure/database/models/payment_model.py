@@ -88,6 +88,19 @@ class PaymentModel(Base):
         String(255),
         nullable=True,
     )
+    expert_id: Mapped[UUID | None] = mapped_column(ForeignKey("experts.id"), nullable=True)
+    tariff_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("tariffs.id", ondelete="SET NULL"), nullable=True
+    )
+    tariff_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    duration_days: Mapped[int | None] = mapped_column(nullable=True)
+    message_limit: Mapped[int | None] = mapped_column(nullable=True)
+    payment_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    payment_fee_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    service_fee_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    payment_fee: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    service_fee: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    expert_income: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

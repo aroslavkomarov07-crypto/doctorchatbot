@@ -50,6 +50,9 @@ class MessageModel(Base):
         ),
         nullable=False,
     )
+    reply_to_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

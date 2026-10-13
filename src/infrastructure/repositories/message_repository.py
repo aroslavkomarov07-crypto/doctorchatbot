@@ -21,6 +21,7 @@ class MessageRepository:
             expert_id=message.expert_id,
             text=message.text,
             sender_type=message.sender_type,
+            reply_to_id=message.reply_to_id,
             created_at=message.created_at,
         )
 
@@ -109,5 +110,6 @@ class MessageRepository:
             expert_id=message_model.expert_id,
             text=message_model.text,
             sender_type=message_model.sender_type,
+            reply_to_id=message_model.reply_to_id,
             created_at=message_model.created_at,
         )
