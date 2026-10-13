@@ -24,6 +24,7 @@ class Message:
 
     # Кто отправил сообщение
     sender_type: MessageSenderType = MessageSenderType.USER
+    reply_to_id: UUID | None = None
 
     # время отправки
     created_at: datetime = field(

@@ -34,6 +34,10 @@ class ExpertModel(Base):
         String(1000),
         nullable=True,
     )
+    specialization: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    education: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    experience: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    photo_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     is_active: Mapped[bool] = mapped_column(
         Boolean,

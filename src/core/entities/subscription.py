@@ -27,6 +27,9 @@ class Subscription:
 
     # Текущий статус
     status: SubscriptionStatus = SubscriptionStatus.PENDING
+    tariff_id: UUID | None = None
+    message_limit: int | None = None
+    messages_sent: int = 0
 
     @classmethod
     def create(

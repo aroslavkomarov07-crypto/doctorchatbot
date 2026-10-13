@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.entities.subscription import Subscription
@@ -24,6 +24,9 @@ class SubscriptionRepository:
             start_date=subscription.start_date,
             end_date=subscription.end_date,
             status=subscription.status,
+            tariff_id=subscription.tariff_id,
+            message_limit=subscription.message_limit,
+            messages_sent=subscription.messages_sent,
         )
 
         self.session.add(subscription_model)
@@ -76,6 +79,34 @@ class SubscriptionRepository:
             return None
 
         return self._to_entity(subscription_model)
+
+    async def reserve_message_slot(
+        self, user_id: UUID, expert_id: UUID, now: datetime
+    ) -> bool:
+        candidate = (
+            select(SubscriptionModel.id)
+            .where(
+                    SubscriptionModel.user_id == user_id,
+                    SubscriptionModel.expert_id == expert_id,
+                    SubscriptionModel.status == SubscriptionStatus.ACTIVE,
+                    SubscriptionModel.start_date <= now,
+                    SubscriptionModel.end_date > now,
+                    or_(
+                        SubscriptionModel.message_limit.is_(None),
+                        SubscriptionModel.messages_sent < SubscriptionModel.message_limit,
+                    ),
+            )
+            .order_by(SubscriptionModel.end_date.desc())
+            .limit(1)
+            .scalar_subquery()
+        )
+        result = await self.session.execute(
+            update(SubscriptionModel)
+            .where(SubscriptionModel.id == candidate)
+            .values(messages_sent=SubscriptionModel.messages_sent + 1)
+            .returning(SubscriptionModel.id)
+        )
+        return result.scalar_one_or_none() is not None
 
     async def activate(
         self,
@@ -190,4 +221,7 @@ class SubscriptionRepository:
             start_date=subscription_model.start_date,
             end_date=subscription_model.end_date,
             status=subscription_model.status,
+            tariff_id=subscription_model.tariff_id,
+            message_limit=subscription_model.message_limit,
+            messages_sent=subscription_model.messages_sent,
         )
