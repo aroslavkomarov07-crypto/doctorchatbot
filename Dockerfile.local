@@ -1,0 +1,8 @@
+FROM ghcr.io/astral-sh/uv:python3.12-alpine
+WORKDIR /opt/doctorshop
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-cache
+ENV PATH="/opt/doctorshop/.venv/bin:$PATH" PYTHONPATH=/opt/doctorshop PYTHONUNBUFFERED=1
+COPY . .
+RUN chmod +x ./docker-entrypoint.sh
+CMD ["./docker-entrypoint.sh"]

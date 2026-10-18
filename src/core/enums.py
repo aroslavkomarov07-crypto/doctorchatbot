@@ -1,0 +1,104 @@
+from enum import StrEnum
+
+
+class Role(StrEnum):
+    CLIENT = "CLIENT"
+    EXPERT = "EXPERT"
+    OWNER = "OWNER"
+
+
+class ExpertApplicationStatus(StrEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    CANCELED = "CANCELED"
+
+
+class SubscriptionStatus(StrEnum):
+    PENDING_PAYMENT = "PENDING_PAYMENT"
+    ACTIVE = "ACTIVE"
+    EXPIRED = "EXPIRED"
+    CANCELED = "CANCELED"
+    REFUNDED = "REFUNDED"
+    BLOCKED = "BLOCKED"
+
+
+class TransactionStatus(StrEnum):
+    PENDING = "PENDING"
+    COMPLETED = "COMPLETED"
+    CANCELED = "CANCELED"
+    REFUNDED = "REFUNDED"
+    FAILED = "FAILED"
+
+
+class PaymentProvider(StrEnum):
+    PLATEGA = "PLATEGA"
+    FAKE = "FAKE"
+
+
+class MessageStatus(StrEnum):
+    CREATED = "CREATED"
+    DELIVERED = "DELIVERED"
+    READ = "READ"
+    FAILED = "FAILED"
+
+
+class ConversationTopicSide(StrEnum):
+    CLIENT = "CLIENT"
+    EXPERT = "EXPERT"
+
+
+class ConversationTopicStatus(StrEnum):
+    PENDING = "PENDING"
+    CREATING = "CREATING"
+    READY = "READY"
+    FAILED = "FAILED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class LedgerEntryType(StrEnum):
+    PAYMENT_GROSS = "PAYMENT_GROSS"
+    PAYMENT_GATEWAY_FEE = "PAYMENT_GATEWAY_FEE"
+    SERVICE_FEE = "SERVICE_FEE"
+    EXPERT_INCOME = "EXPERT_INCOME"
+    REFERRAL_REWARD = "REFERRAL_REWARD"
+    REFUND = "REFUND"
+    WITHDRAWAL_RESERVE = "WITHDRAWAL_RESERVE"
+    WITHDRAWAL_PAID = "WITHDRAWAL_PAID"
+    WITHDRAWAL_RELEASE = "WITHDRAWAL_RELEASE"
+
+
+class WithdrawalStatus(StrEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    PAID = "PAID"
+    REJECTED = "REJECTED"
+    CANCELED = "CANCELED"
+
+
+class ReferralAccrual(StrEnum):
+    FIRST_PAYMENT = "FIRST_PAYMENT"
+    EVERY_PAYMENT = "EVERY_PAYMENT"
+
+
+class ReferralRewardKind(StrEnum):
+    FIXED = "FIXED"
+    PERCENT = "PERCENT"
+
+
+class BroadcastStatus(StrEnum):
+    DRAFT = "DRAFT"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    CANCELED = "CANCELED"
+    FAILED = "FAILED"
+
+
+class BroadcastAudience(StrEnum):
+    ALL = "ALL"
+    CLIENTS = "CLIENTS"
+    EXPERTS = "EXPERTS"
+    ACTIVE_SUBSCRIBERS = "ACTIVE_SUBSCRIBERS"
+    INACTIVE_CLIENTS = "INACTIVE_CLIENTS"
+    EXPERT_SUBSCRIBERS = "EXPERT_SUBSCRIBERS"
+    TARIFF_SUBSCRIBERS = "TARIFF_SUBSCRIBERS"

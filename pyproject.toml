@@ -1,0 +1,62 @@
+[project]
+name = "doctor-shop"
+version = "0.1.0"
+description = "Telegram marketplace for paid client-to-expert consultations"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "aiogram~=3.25.0",
+    "aiogram-dialog~=2.5.0",
+    "alembic~=1.16.5",
+    "asyncpg~=0.30.0",
+    "dishka~=1.7.2",
+    "fastapi>=0.120.2",
+    "fluentogram~=1.2.1",
+    "httpx>=0.28.0",
+    "loguru~=0.7.3",
+    "orjson>=3.10.0",
+    "pydantic-settings~=2.11.0",
+    "python-multipart>=0.0.22",
+    "qrcode[pil]~=8.2",
+    "redis~=7.0.0",
+    "sqlalchemy[mypy]>=2.0.0",
+    "taskiq[orjson]~=0.12.1",
+    "taskiq-redis~=1.2.1",
+    "uvicorn>=0.38.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.14.2",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = [".venv", ".idea"]
+lint.select = ["C", "DTZ", "E", "F", "I", "N", "PLC", "PLE", "Q", "T", "W", "YTT"]
+lint.ignore = ["C901", "N818"]
+
+[tool.mypy]
+packages = ["src"]
+plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
+exclude = [".venv", ".idea", "tests"]
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_reexport = true
+strict_equality = true
+extra_checks = true
+
+[[tool.mypy.overrides]]
+module = ["fluentogram.*", "taskiq.*", "taskiq_redis.*"]
+follow_untyped_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]

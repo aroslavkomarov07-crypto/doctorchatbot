@@ -1,0 +1,75 @@
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile.local
+  env_file: .env
+  environment:
+    DATABASE_HOST: doctorshop-db
+    DATABASE_PORT: 5432
+    REDIS_HOST: doctorshop-redis
+    REDIS_PORT: 6379
+    REDIS_PASSWORD: ""
+    BOT_USE_POLLING: "true"
+  restart: unless-stopped
+  volumes:
+    - ./src:/opt/doctorshop/src
+    - ./assets:/opt/doctorshop/assets
+    - ./logs:/opt/doctorshop/logs
+  depends_on:
+    doctorshop-db:
+      condition: service_healthy
+    doctorshop-redis:
+      condition: service_healthy
+
+services:
+  doctorshop-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-doctorshop}
+      POSTGRES_USER: ${DATABASE_USER:-doctorshop}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      TZ: UTC
+    ports:
+      - "127.0.0.1:6767:5432"
+    volumes:
+      - doctorshop-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  doctorshop-redis:
+    image: valkey/valkey:9-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6768:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  doctorshop:
+    <<: *app
+    environment:
+      DATABASE_HOST: doctorshop-db
+      DATABASE_PORT: 5432
+      REDIS_HOST: doctorshop-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      BOT_USE_POLLING: "true"
+      UVICORN_RELOAD_ENABLED: "1"
+    ports:
+      - "127.0.0.1:5000:${APP_PORT:-5000}"
+
+  doctorshop-worker:
+    <<: *app
+    command: taskiq worker src.infrastructure.taskiq.broker:broker --tasks-pattern src/infrastructure/taskiq/tasks.py -fsd
+
+  doctorshop-scheduler:
+    <<: *app
+    command: taskiq scheduler src.infrastructure.taskiq.scheduler:scheduler --tasks-pattern src/infrastructure/taskiq/tasks.py -fsd
+
+volumes:
+  doctorshop-db-data:

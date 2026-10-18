@@ -1,0 +1,26 @@
+services:
+  doctorshop:
+    build: .
+    image: doctorshop:latest
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-5000}:${APP_PORT:-5000}"
+    volumes:
+      - ./logs:/opt/doctorshop/logs
+
+  doctorshop-worker:
+    image: doctorshop:latest
+    env_file: .env
+    restart: unless-stopped
+    command: taskiq worker src.infrastructure.taskiq.broker:broker --tasks-pattern src/infrastructure/taskiq/tasks.py -fsd
+    volumes:
+      - ./logs:/opt/doctorshop/logs
+
+  doctorshop-scheduler:
+    image: doctorshop:latest
+    env_file: .env
+    restart: unless-stopped
+    command: taskiq scheduler src.infrastructure.taskiq.scheduler:scheduler --tasks-pattern src/infrastructure/taskiq/tasks.py -fsd
+    volumes:
+      - ./logs:/opt/doctorshop/logs
